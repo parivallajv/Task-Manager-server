@@ -3,17 +3,23 @@ const Notes = require("../models/Task");
 
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
+const { getUserIdType } = require("../middleware/helper");
 
 // @desc Get all users
 // @route GET /Users
 // @access private
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select("-password")?.lean();
+  const { role, userId } = req.query;
+
+  const idType = getUserIdType(Number(role));
+  const users = await User.find({ [idType]: userId })
+    .select("-password")
+    ?.lean();
+
   if (!users) {
     return res.status(400).json({ message: "No user not found", data: [] });
   }
-
   res.status(200).json({ data: users });
 });
 
@@ -22,18 +28,23 @@ const getAllUsers = asyncHandler(async (req, res) => {
 // @access private
 
 const createNewUser = asyncHandler(async (req, res) => {
-  const { username, email, password, roles } = req.body;
-  if (!username || !password || !Array.isArray(roles) || !roles.length) {
+  const { username, email, password, roles, adminId, managerId } = req.body;
+  if (!username || !password) {
     return res.status(404).json({ message: "All fields are required" });
   }
   const duplicate = await User.findOne({ username }).lean().exec();
   if (duplicate) {
     return res.status(409).json({ message: "Duplicate not allowed" });
   }
-
   const hashedPassword = await bcrypt.hash(password, 10);
-
-  const userObject = { username, email, password: hashedPassword, roles };
+  const userObject = {
+    username,
+    email,
+    password: hashedPassword,
+    roles,
+    adminId,
+    managerId,
+  };
   const user = await User.create(userObject);
   if (user) {
     res.status(201).json({ message: "User created successfully" });
@@ -47,8 +58,7 @@ const createNewUser = asyncHandler(async (req, res) => {
 // @access private
 
 const updateUser = asyncHandler(async (req, res) => {
-  const { id, username, password, roles, active } = req.body;
-
+  const { id, username, email, password, roles, active } = req.body;
   if (
     !id ||
     !username ||
@@ -66,10 +76,17 @@ const updateUser = asyncHandler(async (req, res) => {
   if (duplicate && duplicate?.id.toString() !== id) {
     return res.status(409).json({ message: "Duplicate user" });
   }
+
+  const isUsernameChanged = user.username !== username;
+  if (isUsernameChanged) {
+    const note = await Notes.findOne({ username: user?.username }).exec();
+    note.username = username;
+    await note.save();
+  }
   user.username = username;
   user.roles = roles;
   user.active = active;
-
+  user.email = email;
   if (password) {
     user.password = await bcrypt.hash(password, 10);
   }
@@ -86,7 +103,7 @@ const updateUser = asyncHandler(async (req, res) => {
 const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.body;
   if (!id) {
-    return res.status(400).json({ message: "User Id found" });
+    return res.status(400).json({ message: "User Id not found" });
   }
   const notes = await Notes.findOne({ user: id }).lean().exec();
   if (notes) {
@@ -96,7 +113,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(400).json("User not found");
   }
-  const result = await User.deleteOne();
+  const result = await User.findByIdAndDelete(id);
   return res.json({ message: `${result.username} deleted successfully` });
 });
 

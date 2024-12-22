@@ -7,6 +7,7 @@ const usersDB = {
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
 // @desc Get Authentication
 // @route GET /User
@@ -42,7 +43,7 @@ const authenticateUser = asyncHandler(async (req, res) => {
       userRoles: foundUser.roles,
     },
     process.env.ACCESS_TOKEN,
-    { expiresIn: "15m" }
+    { expiresIn: "1d" }
   );
 
   const refreshToken = jwt.sign(

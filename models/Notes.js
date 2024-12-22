@@ -1,30 +1,22 @@
 const mongoose = require("mongoose");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 
-const taskSchema = new mongoose.Schema(
+const noteSchema = new mongoose.Schema(
   {
-    username: {
+    user: {
       type: String,
       required: true,
       ref: "User",
-    },
-    userId: {
-      type: String,
-      required: true,
     },
     title: {
       type: String,
       required: true,
     },
-    description: {
+    text: {
       type: String,
       required: true,
     },
-    dueDate: {
-      type: Date,
-      required: false,
-    },
-    status: {
+    completed: {
       type: Boolean,
       default: false,
     },
@@ -34,10 +26,10 @@ const taskSchema = new mongoose.Schema(
   }
 );
 
-taskSchema.plugin(AutoIncrement, {
+noteSchema.plugin(AutoIncrement, {
   inc_field: "ticket",
   id: "ticketNums",
   start_seq: 500,
 });
 
-module.exports = mongoose.model("Notes", taskSchema);
+module.exports = mongoose.model("Notes", noteSchema);

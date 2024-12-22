@@ -16,13 +16,21 @@ const userSchema = new mongoose.Schema({
   roles: [
     {
       type: String,
-      default: "Employee",
+      default: "user",
     },
   ],
   active: {
     type: Boolean,
     default: true,
   },
+  adminId: {
+    type: String,
+  },
+  managerId: {
+    type: String,
+  },
+  resetToken: { type: String },
+  resetTokenExpiry: { type: Date },
 });
 
 module.exports = mongoose.model("User", userSchema);
